@@ -62,7 +62,7 @@ PointGroup:
 PointGroup-PAPER:
   class: pointgroup.PointGroup
   conv_type: "SPARSE"
-  scorer_type: "None" #"unet"
+  scorer_type: "unet"
   loss_weights:
     semantic: 1
     offset_norm_loss: 1
@@ -149,7 +149,7 @@ PointGroup-PAPER:
       aggr: "max"
       nn: [ 4*in_feat, in_feat ]
 
-  prepare_epoch: 0
+  prepare_epoch: 120
   cluster_radius_search: 1.5 * ${data.grid_size}
 
   min_iou_threshold: 0.25

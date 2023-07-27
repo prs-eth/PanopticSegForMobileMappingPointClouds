@@ -429,7 +429,7 @@ class MinkowskiBackbone(BaseModel):
                 ignore_labels=ignore_labels,
                 radius=radius,
                 nsample=nsample,
-                min_cluster_size=10
+                min_cluster_size=32
             )
         #print(clusters_pos)
         predicted_ins_labels_byOffset = -1*torch.ones(labels.size(), dtype=torch.int64)

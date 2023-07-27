@@ -33,6 +33,7 @@ total_gt_ins = np.zeros(NUM_CLASSES)
 at = 0.5
 tpsins = [[] for itmp in range(NUM_CLASSES)]
 fpsins = [[] for itmp in range(NUM_CLASSES)]
+IoU_Tp = np.zeros(NUM_CLASSES)
 # mucov and mwcov
 all_mean_cov = [[] for itmp in range(NUM_CLASSES)]
 all_mean_weighted_cov = [[] for itmp in range(NUM_CLASSES)]
@@ -125,6 +126,7 @@ for i_sem in range(NUM_CLASSES):
 
 # instance precision & recall
 for i_sem in range(NUM_CLASSES):
+    IoU_Tp_per=0
     tp = [0.] * len(pts_in_pred[i_sem])
     fp = [0.] * len(pts_in_pred[i_sem])
     gtflag = np.zeros(len(pts_in_gt[i_sem]))
@@ -144,11 +146,13 @@ for i_sem in range(NUM_CLASSES):
 
         if ovmax >= at:
                 tp[ip] = 1  # true
+                IoU_Tp_per += ovmax
         else:
             fp[ip] = 1  # false positive
 
     tpsins[i_sem] += tp
     fpsins[i_sem] += fp
+    IoU_Tp[i_sem] = IoU_Tp_per
 
 
 MUCov = np.zeros(NUM_CLASSES)
@@ -159,6 +163,9 @@ for i_sem in range(NUM_CLASSES):
 
 precision = np.zeros(NUM_CLASSES)
 recall = np.zeros(NUM_CLASSES)
+RQ = np.zeros(NUM_CLASSES)
+SQ = np.zeros(NUM_CLASSES)
+PQ = np.zeros(NUM_CLASSES)
 for i_sem in range(NUM_CLASSES):
     tp = np.asarray(tpsins[i_sem]).astype(np.float)
     fp = np.asarray(fpsins[i_sem]).astype(np.float)
@@ -169,6 +176,10 @@ for i_sem in range(NUM_CLASSES):
 
     precision[i_sem] = prec
     recall[i_sem] = rec
+    RQ[i_sem] = 2*prec*rec/(prec+rec)
+    SQ[i_sem] = IoU_Tp[i]/tp
+    PQ[i_sem] = SQ*RQ
+    
 
 # instance results
 log_string('Instance Segmentation MUCov: {}'.format(MUCov[ins_classcount]))
@@ -179,3 +190,6 @@ log_string('Instance Segmentation Precision: {}'.format(precision[ins_classcount
 log_string('Instance Segmentation mPrecision: {}'.format(np.mean(precision[ins_classcount])))
 log_string('Instance Segmentation Recall: {}'.format(recall[ins_classcount]))
 log_string('Instance Segmentation mRecall: {}'.format(np.mean(recall[ins_classcount])))
+log_string('Instance Segmentation RQ: {}'.format(RQ[ins_classcount]))
+log_string('Instance Segmentation SQ: {}'.format(SQ[ins_classcount]))
+log_string('Instance Segmentation PQ: {}'.format(PQ[ins_classcount]))

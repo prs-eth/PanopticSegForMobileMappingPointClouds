@@ -231,30 +231,6 @@ class SaveOriginalPosId:
 
     def __repr__(self):
         return self.__class__.__name__
-    
-class SaveLocalOriginalPosId:
-    """ Transform that adds the index of the point to the data object
-    This allows us to track this point from the output back to the input data object
-    """
-
-    KEY = "local_id"
-
-    def _process(self, data):
-        if hasattr(data, self.KEY):
-            return data
-
-        setattr(data, self.KEY, torch.arange(0, data.pos.shape[0]))
-        return data
-
-    def __call__(self, data):
-        if isinstance(data, list):
-            data = [self._process(d) for d in data]
-        else:
-            data = self._process(data)
-        return data
-
-    def __repr__(self):
-        return self.__class__.__name__
 
 
 class ElasticDistortion:

@@ -80,8 +80,8 @@ def read_npm3d_format(train_file, label_out=True, verbose=False, debug=False):
     xyz = np.vstack((data['x'], data['y'], data['z'])).astype(np.float32).T
     if not label_out:
         return xyz
-    semantic_labels = data['scalar_class'].astype(np.int64)-1
-    instance_labels = data['scalar_label'].astype(np.int64)+1
+    semantic_labels = data['class'].astype(np.int64)-1
+    instance_labels = data['label'].astype(np.int64)+1
     #print(np.unique(instance_labels))
     return (
         torch.from_numpy(xyz),
@@ -191,6 +191,10 @@ class NPM3DOriginalFused(InMemoryDataset):
     ):  
         if isinstance(test_area, int):
             assert test_area >= 1 and test_area <= 4
+        else:
+            assert len(test_area) == 1
+            self.area_name = os.path.split(test_area[0])[-1].split('.')[0]
+            
         self.transform = transform
         self.pre_collate_transform = pre_collate_transform
         self.test_area = test_area
@@ -218,10 +222,10 @@ class NPM3DOriginalFused(InMemoryDataset):
             if split == "test":
                 self.raw_test_data = torch.load(self.raw_areas_paths[test_area - 1])
         else:
-            self.process_test(test_area)
-            path = self.processed_path
+            # self.process_test(test_area)
+            path = self.processed_paths[0]
             self._load_data(path)
-            self.raw_test_data = torch.load(self.raw_path[0])
+            self.raw_test_data = torch.load(self.raw_areas_paths[0])
 
 
     @property
@@ -237,7 +241,10 @@ class NPM3DOriginalFused(InMemoryDataset):
 
     @property
     def processed_dir(self):
-        return osp.join(self.root,'processed_'+str(self.grid_size))#+'_'+str(self.test_area))
+        if isinstance(self.test_area, int):
+            return osp.join(self.root,'processed_'+str(self.grid_size)+'_'+str(self.test_area))
+        else:
+            return osp.join(self.root,'processed_'+str(self.grid_size)+'_'+str(self.area_name))
 
     @property
     def pre_processed_path(self):
@@ -246,17 +253,22 @@ class NPM3DOriginalFused(InMemoryDataset):
 
     @property
     def raw_areas_paths(self):
-        return [os.path.join(self.processed_dir, "raw_area_%i.pt" % i) for i in range(4)]
+        if isinstance(self.test_area, int):
+            return [os.path.join(self.processed_dir, "raw_area_%i.pt" % i) for i in range(4)]
+        else:
+            return [os.path.join(self.processed_dir, 'raw_area_'+self.area_name+'.pt')]
 
     @property
     def processed_file_names(self):
-        #test_area = self.test_area
-        return (
-           # ["{}_{}.pt".format(s, test_area) for s in ["train", "val", "test", "trainval"]]
-           ["{}.pt".format(s) for s in ["train", "val", "test", "trainval"]]
-            + self.raw_areas_paths
-            + [self.pre_processed_path]
-        )
+        test_area = self.test_area
+        if isinstance(test_area, int):
+            return (
+                ["{}_{}.pt".format(s, test_area) for s in ["train", "val", "test", "trainval"]]
+                + self.raw_areas_paths
+                + [self.pre_processed_path]
+            )
+        else:
+            return (['processed_'+self.area_name+'.pt'])
 
     @property
     def raw_test_data(self):
@@ -333,7 +345,7 @@ class NPM3DOriginalFused(InMemoryDataset):
                 else:
                     train_data_list.append(data)
             trainval_data_list = val_data_list + train_data_list
-        test_data_list = val_data_list #data_list[self.test_area - 1]
+        test_data_list = data_list[self.test_area - 1]
 
         #train_data_list = list(train_data_list.values())
         #val_data_list = list(val_data_list.values())
@@ -357,6 +369,58 @@ class NPM3DOriginalFused(InMemoryDataset):
             trainval_data_list = self.pre_collate_transform(trainval_data_list)
 
         self._save_data(train_data_list, val_data_list, test_data_list, trainval_data_list)
+
+    def process_test(self, test_area):
+
+        # preprocess_dir = osp.join(self.root,'processed_'+str(self.grid_size))
+        # self.processed_path = osp.join(preprocess_dir,'processed.pt')
+
+        # if not os.path.exists(preprocess_dir):
+        #     os.mkdir(preprocess_dir)
+        test_data_list = []
+        # self.raw_path = []
+        for i, file_path in enumerate(test_area):
+            area_name = os.path.split(file_path)[-1]
+            # pre_processed_path = osp.join(preprocess_dir, area_name.split('.')[0]+'_processed.pt')
+            # raw_path = osp.join(preprocess_dir, area_name.split('.')[0]+'_raw.pt')
+            # self.raw_path.append(raw_path)
+            if not os.path.exists(self.pre_processed_path):
+                xyz, semantic_labels, instance_labels = read_npm3d_format(
+                    file_path, label_out=True, verbose=self.verbose, debug=self.debug
+                )
+                data = Data(pos=xyz, y=semantic_labels)
+                if self.keep_instance:
+                    data.instance_labels = instance_labels
+                if self.pre_filter is not None and not self.pre_filter(data):
+                    continue
+                print("area_name:")
+                print(area_name)
+                print("data:")  #Data(pos=[30033430, 3], validation_set=False, y=[30033430])
+                print(data)
+                test_data_list.append(data)
+                # if self.pre_transform is not None:
+                #     for data in test_data_list:
+                #         data = self.pre_transform(data)
+                torch.save(data, self.pre_processed_path)
+
+                
+            else:
+                data = torch.load(self.pre_processed_path)
+                test_data_list.append(data)
+
+        raw_areas = cT.PointCloudFusion()(test_data_list)
+        torch.save(raw_areas, self.raw_areas_paths[0])
+            
+        if self.debug:
+            return
+
+        print("test_data_list:")
+        print(test_data_list)
+        if self.pre_collate_transform:
+            log.info("pre_collate_transform ...")
+            log.info(self.pre_collate_transform)
+            test_data_list = self.pre_collate_transform(test_data_list)
+        torch.save(test_data_list, self.processed_paths[0])
 
     def _save_data(self, train_data_list, val_data_list, test_data_list, trainval_data_list):
         torch.save(self.collate(train_data_list), self.processed_paths[0])
@@ -416,7 +480,10 @@ class NPM3DSphere(NPM3DOriginalFused):
             return self._test_spheres[idx].clone()
 
     def process(self):  # We have to include this method, otherwise the parent class skips processing
-        super().process()
+        if isinstance(self.test_area, int):
+            super().process()
+        else:
+            super().process_test(self.test_area)
 
     def download(self):  # We have to include this method, otherwise the parent class skips download
         super().download()
@@ -430,58 +497,6 @@ class NPM3DSphere(NPM3DOriginalFused):
         area_data = self._datas[centre[3].int()]
         sphere_sampler = cT.SphereSampling(self._radius, centre[:3], align_origin=False)
         return sphere_sampler(area_data)
-    
-    def process_test(self, test_area):
-
-        preprocess_dir = osp.join(self.root,'processed_'+str(self.grid_size))
-        self.processed_path = osp.join(preprocess_dir,'processed.pt')
-
-        if not os.path.exists(preprocess_dir):
-            os.mkdir(preprocess_dir)
-        test_data_list = []
-        self.raw_path = []
-        for i, file_path in enumerate(test_area):
-            area_name = os.path.split(file_path)[-1]
-            pre_processed_path = osp.join(preprocess_dir, area_name.split('.')[0]+'_processed.pt')
-            raw_path = osp.join(preprocess_dir, area_name.split('.')[0]+'_raw.pt')
-            self.raw_path.append(raw_path)
-            if not os.path.exists(pre_processed_path):
-                xyz, semantic_labels, instance_labels = read_npm3d_format(
-                    file_path, label_out=True, verbose=self.verbose, debug=self.debug
-                )
-                data = Data(pos=xyz, y=semantic_labels)
-                if self.keep_instance:
-                    data.instance_labels = instance_labels
-                if self.pre_filter is not None and not self.pre_filter(data):
-                    continue
-                print("area_name:")
-                print(area_name)
-                print("data:")  #Data(pos=[30033430, 3], validation_set=False, y=[30033430])
-                print(data)
-                test_data_list.append(data)
-                # if self.pre_transform is not None:
-                #     for data in test_data_list:
-                #         data = self.pre_transform(data)
-                torch.save(data, pre_processed_path)
-
-                
-            else:
-                data = torch.load(pre_processed_path)
-                test_data_list.append(data)
-
-        raw_areas = cT.PointCloudFusion()(test_data_list)
-        torch.save(raw_areas, self.raw_path[0])
-            
-        if self.debug:
-            return
-
-        print("test_data_list:")
-        print(test_data_list)
-        if self.pre_collate_transform:
-            log.info("pre_collate_transform ...")
-            log.info(self.pre_collate_transform)
-            test_data_list = self.pre_collate_transform(test_data_list)
-        torch.save(test_data_list, self.processed_path)
 
     def _save_data(self, train_data_list, val_data_list, test_data_list, trainval_data_list):
         torch.save(train_data_list, self.processed_paths[0])
@@ -614,10 +629,6 @@ class NPM3DFusedDataset(BaseDataset):
     @property
     def test_data(self):
         return self.test_dataset[0].raw_test_data
-    
-    @property
-    def test_data_spheres(self):
-        return self.test_dataset[0]._test_spheres
 
     @staticmethod
     def to_ply(pos, label, file):

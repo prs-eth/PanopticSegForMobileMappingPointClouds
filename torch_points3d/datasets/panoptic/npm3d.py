@@ -5,9 +5,8 @@ import random
 from torch_points3d.datasets.base_dataset import BaseDataset, save_used_properties
 from torch_points3d.datasets.segmentation.npm3d import NPM3DSphere, NPM3DCylinder, INV_OBJECT_LABEL
 import torch_points3d.core.data_transform as cT
-#from torch_points3d.metrics.panoptic_tracker import PanopticTracker
+from torch_points3d.metrics.panoptic_tracker import PanopticTracker
 from torch_points3d.metrics.panoptic_tracker_npm3d import MyPanopticTracker
-#from torch_points3d.metrics.panoptic_tracker_pointgroup_npm3d import PanopticTracker
 from torch_points3d.datasets.panoptic.utils import set_extra_labels
 from plyfile import PlyData, PlyElement
 import os
@@ -641,10 +640,6 @@ class NPM3DFusedDataset(BaseDataset):
     @property
     def test_data(self):
         return self.test_dataset[0].raw_test_data
-    
-    @property
-    def test_data_spheres(self):
-        return self.test_dataset[0]._test_spheres
 
     @property  # type: ignore
     @save_used_properties

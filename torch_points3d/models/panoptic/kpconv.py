@@ -512,7 +512,7 @@ class KPConvPaper(UnwrappedUnetBasedModel):
                 ignore_labels=ignore_labels,
                 radius=radius,
                 nsample=nsample,
-                min_cluster_size=10
+                min_cluster_size=32
             )
         #print(clusters_pos)
         predicted_ins_labels_byOffset = -1*torch.ones(labels.size(), dtype=torch.int64)
@@ -614,41 +614,41 @@ class KPConvPaper(UnwrappedUnetBasedModel):
                 batch_mask_com = data_visual.batch == s
                 example_name='example_complete_{:d}'.format(self.visual_count)
                 val_name = join("viz", "epoch_"+str(epoch), example_name)
-                #write_ply(val_name,
-                #            [data_visual.pos[batch_mask_com].detach().cpu().numpy(), 
-                #            data_visual.y[batch_mask_com].detach().cpu().numpy().astype('int32'),
-                #            data_visual.instance_labels[batch_mask_com].detach().cpu().numpy().astype('int32'),
-                #            data_visual.semantic_prob[batch_mask_com].detach().cpu().numpy(),
-                #            data_visual.embedding[batch_mask_com].detach().cpu().numpy(),
-                #            data_visual.vote[batch_mask_com].detach().cpu().numpy().astype('int32'),
-                #            data_visual.semantic_pred[batch_mask_com].detach().cpu().numpy().astype('int32'),
-                #            data_visual.input[batch_mask_com].detach().cpu().numpy(),
-                #            ],
+                write_ply(val_name,
+                            [data_visual.pos[batch_mask_com].detach().cpu().numpy(), 
+                            data_visual.y[batch_mask_com].detach().cpu().numpy().astype('int32'),
+                            data_visual.instance_labels[batch_mask_com].detach().cpu().numpy().astype('int32'),
+                            data_visual.semantic_prob[batch_mask_com].detach().cpu().numpy(),
+                            data_visual.embedding[batch_mask_com].detach().cpu().numpy(),
+                            data_visual.vote[batch_mask_com].detach().cpu().numpy().astype('int32'),
+                            data_visual.semantic_pred[batch_mask_com].detach().cpu().numpy().astype('int32'),
+                            data_visual.input[batch_mask_com].detach().cpu().numpy(),
+                            ],
                             #['x', 'y', 'z', 'sem_label', 'ins_label','offset_x', 'offset_y', 'offset_z', 'center_x', 'center_y', 'center_z','pre_ins_embed','pre_ins_offset', 'input_f1', 'input_f2', 'input_f3', 'input_f4', 'input_f5', 'input_f6', 'input_f7'])
-                #            ['x', 'y', 'z', 'sem_label', 'ins_label',
-                #            'sem_prob_1', 'sem_prob_2', 'sem_prob_3', 'sem_prob_4', 'sem_prob_5', 'sem_prob_6', 'sem_prob_7','sem_prob_8', 'sem_prob_9',
-                            #'sem_prob_1', 'sem_prob_2', 'sem_prob_3', 'sem_prob_4',
-                #            'embed_1', 'embed_2', 'embed_3', 'embed_4', 'embed_5',
-                #            'offset_x_pre', 'offset_y_pre', 'offset_z_pre','sem_pre_1',
-                #             'input_f1', 'input_f2', 'input_f3', 'input_f4','input_f5'])
+                            ['x', 'y', 'z', 'sem_label', 'ins_label',
+                            #'sem_prob_1', 'sem_prob_2', 'sem_prob_3', 'sem_prob_4', 'sem_prob_5', 'sem_prob_6', 'sem_prob_7','sem_prob_8', 'sem_prob_9',
+                            'sem_prob_1', 'sem_prob_2', 'sem_prob_3', 'sem_prob_4',
+                            'embed_1', 'embed_2', 'embed_3', 'embed_4', 'embed_5',
+                            'offset_x_pre', 'offset_y_pre', 'offset_z_pre','sem_pre_1',
+                             'input_f1', 'input_f2', 'input_f3', 'input_f4'])
                 
                 
                 
                 batch_mask = data_visual_fore.batch == s
                 example_name='example_{:d}'.format(self.visual_count)
                 val_name = join("viz", "epoch_"+str(epoch), example_name)
-                #write_ply(val_name,
-                #            [data_visual_fore.pos[batch_mask].detach().cpu().numpy(), 
-                #            data_visual_fore.y[batch_mask].detach().cpu().numpy().astype('int32'),
-                #            data_visual_fore.instance_labels[batch_mask].detach().cpu().numpy().astype('int32'),
-                #            data_visual_fore.vote_label[batch_mask].detach().cpu().numpy(),
-                #            data_visual_fore.pos[batch_mask].detach().cpu().numpy()+data_visual_fore.vote_label[batch_mask].detach().cpu().numpy(),
-                #            data_visual_fore.pre_ins[batch_mask].detach().cpu().numpy().astype('int32'),
-                #            data_visual_fore.pre_ins2[batch_mask].detach().cpu().numpy().astype('int32'),
-                #            data_visual_fore.input[batch_mask].detach().cpu().numpy(),
-                #            ],
+                write_ply(val_name,
+                            [data_visual_fore.pos[batch_mask].detach().cpu().numpy(), 
+                            data_visual_fore.y[batch_mask].detach().cpu().numpy().astype('int32'),
+                            data_visual_fore.instance_labels[batch_mask].detach().cpu().numpy().astype('int32'),
+                            data_visual_fore.vote_label[batch_mask].detach().cpu().numpy(),
+                            data_visual_fore.pos[batch_mask].detach().cpu().numpy()+data_visual_fore.vote_label[batch_mask].detach().cpu().numpy(),
+                            data_visual_fore.pre_ins[batch_mask].detach().cpu().numpy().astype('int32'),
+                            data_visual_fore.pre_ins2[batch_mask].detach().cpu().numpy().astype('int32'),
+                            data_visual_fore.input[batch_mask].detach().cpu().numpy(),
+                            ],
                             #['x', 'y', 'z', 'sem_label', 'ins_label','offset_x', 'offset_y', 'offset_z', 'center_x', 'center_y', 'center_z','pre_ins_embed','pre_ins_offset', 'input_f1', 'input_f2', 'input_f3', 'input_f4', 'input_f5', 'input_f6', 'input_f7'])
-                #            ['x', 'y', 'z', 'sem_label', 'ins_label','offset_x', 'offset_y', 'offset_z', 'center_x', 'center_y', 'center_z','pre_ins_embed','pre_ins_offset', 'input_f1', 'input_f2', 'input_f3', 'input_f4', 'input_f5'])
+                            ['x', 'y', 'z', 'sem_label', 'ins_label','offset_x', 'offset_y', 'offset_z', 'center_x', 'center_y', 'center_z','pre_ins_embed','pre_ins_offset', 'input_f1', 'input_f2', 'input_f3', 'input_f4'])
 
                 example_name='example_ins_{:d}'.format(self.visual_count)
                 val_name = join("viz", "epoch_"+str(epoch), example_name)
@@ -676,16 +676,8 @@ class KPConvPaper(UnwrappedUnetBasedModel):
                 pre_inslab = clustering.labels_
                 write_ply(val_name,
                             [data_visual_fore.pos[batch_mask].detach().cpu().numpy()+data_visual_fore.vote[batch_mask].detach().cpu().numpy(),
-                             pre_inslab.astype('int32'),data_visual_fore.instance_labels[batch_mask].detach().cpu().numpy().astype('int32')], 
-                            ['shifted_x_pre', 'shifted_y_pre', 'shifted_z_pre', 'pre_ins', 'ins_label'])
-                
-                example_name = 'example_shiftedCorPreXYZ_{:d}'.format(self.visual_count)
-                val_name = join("viz", "epoch_"+str(epoch), example_name)
-                write_ply(val_name,
-                            [data_visual_fore.pos[batch_mask].detach().cpu().numpy(),
-                             pre_inslab.astype('int32'),data_visual_fore.instance_labels[batch_mask].detach().cpu().numpy().astype('int32')], 
-                            ['x', 'y', 'z', 'pre_ins', 'ins_label'])
-                
+                             pre_inslab.astype('int32')], 
+                            ['shifted_x_pre', 'shifted_y_pre', 'shifted_z_pre', 'pre_ins'])
                 example_name = 'example_shiftedCorGT_{:d}'.format(self.visual_count)
                 val_name = join("viz", "epoch_"+str(epoch), example_name)
                 write_ply(val_name,

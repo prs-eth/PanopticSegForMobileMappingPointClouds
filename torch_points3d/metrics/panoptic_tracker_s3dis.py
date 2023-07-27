@@ -21,7 +21,7 @@ import time
 time_for_blockMerging_offset=0
 time_for_blockMerging_embed=0
 log = logging.getLogger(__name__)
-block_count=0
+
 class _Instance(NamedTuple):
     classname: str
     indices: np.array  # type: ignore
@@ -220,9 +220,7 @@ class MyPanopticTracker(SegmentationTracker):
             raise ValueError("The inputs given to the model do not have a %s attribute." % SaveOriginalPosId.KEY)
 
         originids = inputs[SaveOriginalPosId.KEY]
-        global block_count
         #print(originids)
-        original_input_ids = self._dataset.test_data_spheres[block_count].origin_id
         if originids.dim() == 2:
             originids = originids.flatten()
         if originids.max() >= self._test_area.pos.shape[0]:
@@ -234,7 +232,7 @@ class MyPanopticTracker(SegmentationTracker):
         #block merging for offsets and embedding features
         global time_for_blockMerging_embed
         T1 = time.perf_counter()
-        self._test_area.ins_pre_embed, self._test_area.max_instance_embed = self.block_merging(original_input_ids.cpu().numpy(), originids.cpu().numpy(), outputs.embed_pre.cpu().numpy(), self._test_area.ins_pre_embed.cpu().numpy(), self._test_area.max_instance_embed, model.get_opt_mergeTh())
+        self._test_area.ins_pre_embed, self._test_area.max_instance_embed = self.block_merging(originids.cpu().numpy(), outputs.embed_pre.cpu().numpy(), self._test_area.ins_pre_embed.cpu().numpy(), self._test_area.max_instance_embed, model.get_opt_mergeTh())
         T2 = time.perf_counter()
         print('time for block merging of embeds:%sms' % ((T2 - T1)*1000))
         time_for_blockMerging_embed += T2 - T1
@@ -243,22 +241,16 @@ class MyPanopticTracker(SegmentationTracker):
         
         global time_for_blockMerging_offset
         T1 = time.perf_counter()
-        self._test_area.ins_pre_offset, self._test_area.max_instance_offset = self.block_merging(original_input_ids.cpu().numpy(), originids.cpu().numpy(), outputs.offset_pre.cpu().numpy(), self._test_area.ins_pre_offset.cpu().numpy(), self._test_area.max_instance_offset,  model.get_opt_mergeTh())
+        self._test_area.ins_pre_offset, self._test_area.max_instance_offset = self.block_merging(originids.cpu().numpy(), outputs.offset_pre.cpu().numpy(), self._test_area.ins_pre_offset.cpu().numpy(), self._test_area.max_instance_offset,  model.get_opt_mergeTh())
         T2 = time.perf_counter()
         print('time for block merging of offsets:%sms' % ((T2 - T1)*1000))
         time_for_blockMerging_offset += T2 - T1
         print('total time for block merging of offsets:%sms' % ((time_for_blockMerging_offset)*1000))
         log.info("total time for block merging of offsets:{}ms".format((time_for_blockMerging_offset)*1000))
-        block_count = block_count+1
+        
       	#return num_clusters, torch.from_numpy(labels)
 
-    def block_merging(self, originids, origin_sub_ids, pre_sub_ins, all_pre_ins, max_instance, th_merge):
-        
-        assign_index  = knn(self._test_area.pos[origin_sub_ids], self._test_area.pos[originids], k=1)
-
-        y_idx, x_idx = assign_index
-        pre_ins = pre_sub_ins[x_idx.detach().cpu().numpy()]
-        
+    def block_merging(self, originids, pre_ins, all_pre_ins, max_instance, th_merge):
         t_num_clusters = np.max(pre_ins)+1
         #print(np.unique(pre_ins))
         #print(t_num_clusters)

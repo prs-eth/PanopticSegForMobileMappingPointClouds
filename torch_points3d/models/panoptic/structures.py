@@ -44,7 +44,7 @@ class PanopticResults(NamedTuple):
         valid_pick_ids = []
         for i in pick_idxs:
             cl = self.clusters
-            if len(cl[i]) > min_cluster_points and self.cluster_scores[i] > min_score:
+            if len(cl) > min_cluster_points and self.cluster_scores[i] > min_score:
                 valid_pick_ids.append(i)
         return valid_pick_ids
 

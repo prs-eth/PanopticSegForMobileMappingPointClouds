@@ -750,10 +750,6 @@ class S3DISFusedDataset(BaseDataset):
     @property
     def test_data(self):
         return self.test_dataset[0].raw_test_data
-    
-    @property
-    def test_data_spheres(self):
-        return self.test_dataset[0]._test_spheres
 
     @staticmethod
     def to_ply(pos, label, file):

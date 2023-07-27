@@ -5,9 +5,8 @@ import random
 from torch_points3d.datasets.base_dataset import BaseDataset, save_used_properties
 from torch_points3d.datasets.segmentation.s3dis import S3DISSphere, S3DISCylinder, INV_OBJECT_LABEL
 import torch_points3d.core.data_transform as cT
-#from torch_points3d.metrics.panoptic_tracker import PanopticTracker
-#from torch_points3d.metrics.panoptic_tracker_s3dis import MyPanopticTracker
-from torch_points3d.metrics.panoptic_tracker_pointgroup import PanopticTracker
+from torch_points3d.metrics.panoptic_tracker import PanopticTracker
+from torch_points3d.metrics.panoptic_tracker_s3dis import MyPanopticTracker
 from torch_points3d.datasets.panoptic.utils import set_extra_labels
 from plyfile import PlyData, PlyElement
 
@@ -669,10 +668,6 @@ class S3DISFusedDataset(BaseDataset):
     @property
     def test_data(self):
         return self.test_dataset[0].raw_test_data
-    
-    @property
-    def test_data_spheres(self):
-        return self.test_dataset[0]._test_spheres
 
     @property  # type: ignore
     @save_used_properties
@@ -749,6 +744,6 @@ class S3DISFusedDataset(BaseDataset):
             [BaseTracker] -- tracker
         """
 
-        return PanopticTracker(self, wandb_log=wandb_log, use_tensorboard=tensorboard_log)
-        #return MyPanopticTracker(self, wandb_log=wandb_log, use_tensorboard=tensorboard_log)
+        #return PanopticTracker(self, wandb_log=wandb_log, use_tensorboard=tensorboard_log)
+        return MyPanopticTracker(self, wandb_log=wandb_log, use_tensorboard=tensorboard_log)
 

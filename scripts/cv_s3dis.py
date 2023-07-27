@@ -72,7 +72,7 @@ def log_confusion_matrix(conf):
     log.info("MIOU : {}".format(100 * conf.get_average_intersection_union()))
     log.info("====================================================")
 
-#@hydra.main(config_path="conf", config_name="eval")
+
 @hydra.main(config_path="../conf/eval.yaml")
 def main(cfg):
     OmegaConf.set_struct(cfg, False)  # This allows getattr and hasattr methods to function correctly

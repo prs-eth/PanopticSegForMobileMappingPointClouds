@@ -127,7 +127,7 @@ class PanopticTracker(SegmentationTracker):
         self,
         model: TrackerInterface,
         data=None,
-        iou_threshold=0.5, #0.25,
+        iou_threshold=0.25,
         track_instances=True,
         min_cluster_points=10,
         **kwargs
@@ -152,13 +152,12 @@ class PanopticTracker(SegmentationTracker):
             return
 
         predicted_labels = outputs.semantic_logits.max(1)[1]
-        if torch.max(labels.instance_labels)>0:
-            tp, fp, acc = self._compute_acc(
-                clusters, predicted_labels, labels, data.batch, labels.num_instances, iou_threshold
-            )
-            self._pos.add(tp)
-            self._neg.add(fp)
-            self._acc_meter.add(acc)
+        tp, fp, acc = self._compute_acc(
+            clusters, predicted_labels, labels, data.batch, labels.num_instances, iou_threshold
+        )
+        self._pos.add(tp)
+        self._neg.add(fp)
+        self._acc_meter.add(acc)
 
         # Track instances for AP
         if track_instances:

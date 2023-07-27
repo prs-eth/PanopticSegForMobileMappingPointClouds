@@ -13,9 +13,8 @@ from torch_points3d.core.losses import offset_loss, instance_iou_loss
 from torch_points3d.core.data_transform import GridSampling3D
 from .structures import PanopticLabels, PanopticResults
 from torch_points3d.utils import is_list
-from os.path import exists, join
-from sklearn.cluster import MeanShift
-from .ply import read_ply, write_ply
+
+
 class PointGroup(BaseModel):
     __REQUIRED_DATA__ = [
         "pos",
@@ -33,7 +32,7 @@ class PointGroup(BaseModel):
             config=backbone_options.get("config", {}),
         )
 
-        self._scorer_type = option.get("scorer_type", None)
+        self._scorer_type = option.get("scorer_type", "encoder")
         cluster_voxel_size = option.get("cluster_voxel_size", 0.05)
         if cluster_voxel_size:
             self._voxelizer = GridSampling3D(cluster_voxel_size, quantize_coords=True, mode="mean")
@@ -61,13 +60,6 @@ class PointGroup(BaseModel):
             stuff_classes = torch.Tensor(stuff_classes).long()
         self._stuff_classes = torch.cat([torch.tensor([IGNORE_LABEL]), stuff_classes])
 
-    def get_opt_mergeTh(self):
-        """returns configuration"""
-        if self.opt.block_merge_th:
-            return self.opt.block_merge_th
-        else:
-            return 0.01
-    
     def set_input(self, data, device):
         self.raw_pos = data.pos.to(device)
         self.input = data
@@ -86,7 +78,7 @@ class PointGroup(BaseModel):
         cluster_scores = None
         all_clusters = None
         cluster_type = None
-        if epoch == -1 or epoch > self.opt.prepare_epoch:#>-1:  # Active by default
+        if epoch == -1 or epoch > self.opt.prepare_epoch:  # Active by default
             all_clusters, cluster_type = self._cluster(semantic_logits, offset_logits)
             if len(all_clusters):
                 cluster_scores = self._compute_score(all_clusters, backbone_features, semantic_logits)
@@ -100,25 +92,19 @@ class PointGroup(BaseModel):
         )
 
         # Sets visual data for debugging
-        #with torch.no_grad():
-        #    self._dump_visuals(epoch)
-        
-        #with torch.no_grad():
-        #    if epoch % 1 == 0:
-        #        self._dump_visuals_fortest(epoch)
+        with torch.no_grad():
+            self._dump_visuals(epoch)
 
     def _cluster(self, semantic_logits, offset_logits):
         """ Compute clusters from positions and votes """
         predicted_labels = torch.max(semantic_logits, 1)[1]
-        #clusters_pos = region_grow(
-        #    self.raw_pos,
-        #    predicted_labels,
-        #    self.input.batch.to(self.device),
-        #    ignore_labels=self._stuff_classes.to(self.device),
-        #    radius=self.opt.cluster_radius_search,
-        #    min_cluster_size=50
-        #)
-        clusters_pos =[]
+        clusters_pos = region_grow(
+            self.raw_pos,
+            predicted_labels,
+            self.input.batch.to(self.device),
+            ignore_labels=self._stuff_classes.to(self.device),
+            radius=self.opt.cluster_radius_search,
+        )
         clusters_votes = region_grow(
             self.raw_pos + offset_logits,
             predicted_labels,
@@ -126,7 +112,6 @@ class PointGroup(BaseModel):
             ignore_labels=self._stuff_classes.to(self.device),
             radius=self.opt.cluster_radius_search,
             nsample=200,
-            min_cluster_size=50
         )
 
         all_clusters = clusters_pos + clusters_votes
@@ -183,7 +168,7 @@ class PointGroup(BaseModel):
                 cluster_semantic = torch.cat(cluster_semantic)
                 batch = torch.cat(batch)
                 cluster_semantic = scatter(cluster_semantic, batch.long().to(self.device), dim=0, reduce="mean")
-                cluster_scores = torch.max(torch.exp(cluster_semantic), 1)[0]
+                cluster_scores = torch.max(cluster_semantic, 1)[0]
         return cluster_scores
 
     def _compute_loss(self):
@@ -239,119 +224,3 @@ class PointGroup(BaseModel):
                 os.mkdir("viz")
             torch.save(data_visual.to("cpu"), "viz/data_e%i_%i.pt" % (epoch, self.visual_count))
             self.visual_count += 1
-    
-    def _dump_visuals_fortest(self, epoch):
-        if 0==self.opt.vizual_ratio: #random.random() < self.opt.vizual_ratio:
-            if not hasattr(self, "visual_count"):
-                self.visual_count = 0
-            if not os.path.exists("viz"):
-                os.mkdir("viz")
-            if not os.path.exists("viz/epoch_%i" % (epoch)):
-                os.mkdir("viz/epoch_%i" % (epoch))
-            #if self.visual_count%10!=0:
-            #    return
-            print("epoch:{}".format(epoch))
-            data_visual = Data(
-                pos=self.raw_pos, y=self.input.y, instance_labels=self.input.instance_labels, batch=self.input.batch
-            )
-            #    pos=self.input.coords, y=self.input.y, instance_labels=self.input.instance_labels, batch=self.input.batch
-            data_visual.semantic_pred = torch.max(self.output.semantic_logits, -1)[1]
-            #data_visual.embedding = self.output.embedding_logits
-            data_visual.vote = self.output.offset_logits
-            data_visual.semantic_prob = self.output.semantic_logits
-            data_visual.input=self.input.x
-
-            data_visual_fore = Data(
-                pos=self.raw_pos[self.input.instance_mask], y=self.input.y[self.input.instance_mask], instance_labels=self.input.instance_labels[self.input.instance_mask], batch=self.input.batch[self.input.instance_mask],
-                vote_label=self.labels.vote_label[self.input.instance_mask], 
-                input=self.input.x[self.input.instance_mask]
-            )
-            data_visual_fore.vote = self.output.offset_logits[self.input.instance_mask]
-            #data_visual_fore.embedding = self.output.embedding_logits[self.input.instance_mask]
-            
-            batch_size = torch.unique(data_visual_fore.batch)
-            for s in batch_size:
-                print(s)
-                
-                batch_mask_com = data_visual.batch == s
-                example_name='example_complete_{:d}'.format(self.visual_count)
-                val_name = join("viz", "epoch_"+str(epoch), example_name)
-                #write_ply(val_name,
-                #            [data_visual.pos[batch_mask_com].detach().cpu().numpy(), 
-                #            data_visual.y[batch_mask_com].detach().cpu().numpy().astype('int32'),
-                #            data_visual.instance_labels[batch_mask_com].detach().cpu().numpy().astype('int32'),
-                #            data_visual.semantic_prob[batch_mask_com].detach().cpu().numpy(),
-                #            data_visual.embedding[batch_mask_com].detach().cpu().numpy(),
-                #            data_visual.vote[batch_mask_com].detach().cpu().numpy().astype('int32'),
-                #            data_visual.semantic_pred[batch_mask_com].detach().cpu().numpy().astype('int32'),
-                #            data_visual.input[batch_mask_com].detach().cpu().numpy(),
-                #            ],
-                            #['x', 'y', 'z', 'sem_label', 'ins_label','offset_x', 'offset_y', 'offset_z', 'center_x', 'center_y', 'center_z','pre_ins_embed','pre_ins_offset', 'input_f1', 'input_f2', 'input_f3', 'input_f4', 'input_f5', 'input_f6', 'input_f7'])
-                #            ['x', 'y', 'z', 'sem_label', 'ins_label',
-                #            'sem_prob_1', 'sem_prob_2', 'sem_prob_3', 'sem_prob_4', 'sem_prob_5', 'sem_prob_6', 'sem_prob_7','sem_prob_8', 'sem_prob_9',
-                            #'sem_prob_1', 'sem_prob_2', 'sem_prob_3', 'sem_prob_4',
-                #            'embed_1', 'embed_2', 'embed_3', 'embed_4', 'embed_5',
-                #            'offset_x_pre', 'offset_y_pre', 'offset_z_pre','sem_pre_1',
-                #             'input_f1', 'input_f2', 'input_f3', 'input_f4','input_f5'])
-                
-                
-                
-                batch_mask = data_visual_fore.batch == s
-                example_name='example_{:d}'.format(self.visual_count)
-                val_name = join("viz", "epoch_"+str(epoch), example_name)
-                #write_ply(val_name,
-                #            [data_visual_fore.pos[batch_mask].detach().cpu().numpy(), 
-                #            data_visual_fore.y[batch_mask].detach().cpu().numpy().astype('int32'),
-                #            data_visual_fore.instance_labels[batch_mask].detach().cpu().numpy().astype('int32'),
-                #            data_visual_fore.vote_label[batch_mask].detach().cpu().numpy(),
-                #            data_visual_fore.pos[batch_mask].detach().cpu().numpy()+data_visual_fore.vote_label[batch_mask].detach().cpu().numpy(),
-                #            data_visual_fore.pre_ins[batch_mask].detach().cpu().numpy().astype('int32'),
-                #            data_visual_fore.pre_ins2[batch_mask].detach().cpu().numpy().astype('int32'),
-                #            data_visual_fore.input[batch_mask].detach().cpu().numpy(),
-                #            ],
-                            #['x', 'y', 'z', 'sem_label', 'ins_label','offset_x', 'offset_y', 'offset_z', 'center_x', 'center_y', 'center_z','pre_ins_embed','pre_ins_offset', 'input_f1', 'input_f2', 'input_f3', 'input_f4', 'input_f5', 'input_f6', 'input_f7'])
-                #            ['x', 'y', 'z', 'sem_label', 'ins_label','offset_x', 'offset_y', 'offset_z', 'center_x', 'center_y', 'center_z','pre_ins_embed','pre_ins_offset', 'input_f1', 'input_f2', 'input_f3', 'input_f4', 'input_f5'])
-
-                example_name='example_ins_{:d}'.format(self.visual_count)
-                val_name = join("viz", "epoch_"+str(epoch), example_name)
-            
-                #clustering = MeanShift(bandwidth=self.opt.bandwidth).fit(data_visual_fore.embedding[batch_mask].detach().cpu())                        
-                #pre_inslab = clustering.labels_
-            
-                write_ply(val_name,
-                            [data_visual_fore.pos[batch_mask].detach().cpu().numpy(), 
-                            #data_visual_fore.embedding[batch_mask].detach().cpu().numpy(),
-                            data_visual_fore.instance_labels[batch_mask].detach().cpu().numpy().astype('int32'),
-                            #pre_inslab.astype('int32'),
-                            data_visual_fore.vote[batch_mask,0].detach().cpu().numpy(), 
-                            data_visual_fore.vote_label[batch_mask,0].detach().cpu().numpy(), 
-                            data_visual_fore.vote[batch_mask,1].detach().cpu().numpy(), 
-                            data_visual_fore.vote_label[batch_mask,1].detach().cpu().numpy(), 
-                            data_visual_fore.vote[batch_mask,2].detach().cpu().numpy(), 
-                            data_visual_fore.vote_label[batch_mask,2].detach().cpu().numpy() 
-                            ],
-                            ['x', 'y', 'z', 'ins_label', 'offset_x', 'gt_offset_x', 'offset_y', 'gt_offset_y', 'offset_z', 'gt_offset_z'])
-                #example_name = 'example_shiftedCorPre_{:d}'.format(self.visual_count)
-                #val_name = join("viz", "epoch_"+str(epoch), example_name)
-
-                #clustering = MeanShift(bandwidth=self.opt.bandwidth).fit((data_visual_fore.pos[batch_mask].detach().cpu()+data_visual_fore.vote[batch_mask].detach().cpu()))                    
-                #pre_inslab = clustering.labels_
-                #write_ply(val_name,
-                #            [data_visual_fore.pos[batch_mask].detach().cpu().numpy()+data_visual_fore.vote[batch_mask].detach().cpu().numpy(),
-                #             pre_inslab.astype('int32'),data_visual_fore.instance_labels[batch_mask].detach().cpu().numpy().astype('int32')], 
-                #            ['shifted_x_pre', 'shifted_y_pre', 'shifted_z_pre', 'pre_ins', 'ins_label'])
-                
-                #example_name = 'example_shiftedCorPreXYZ_{:d}'.format(self.visual_count)
-                #val_name = join("viz", "epoch_"+str(epoch), example_name)
-                #write_ply(val_name,
-                #            [data_visual_fore.pos[batch_mask].detach().cpu().numpy(),
-                #             pre_inslab.astype('int32'),data_visual_fore.instance_labels[batch_mask].detach().cpu().numpy().astype('int32')], 
-                #            ['x', 'y', 'z', 'pre_ins', 'ins_label'])
-                
-                #example_name = 'example_shiftedCorGT_{:d}'.format(self.visual_count)
-                #val_name = join("viz", "epoch_"+str(epoch), example_name)
-                #write_ply(val_name,
-                #            [data_visual_fore.pos[batch_mask].detach().cpu().numpy()+data_visual_fore.vote_label[batch_mask].detach().cpu().numpy(),
-                #             data_visual_fore.instance_labels[batch_mask].detach().cpu().numpy().astype('int32')],  
-                #            ['shifted_x_gt', 'shifted_y_gt', 'shifted_z_gt', 'ins_label'])
-                self.visual_count += 1

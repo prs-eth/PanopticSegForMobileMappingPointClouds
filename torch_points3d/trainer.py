@@ -87,12 +87,7 @@ class Trainer:
 
         # Create model and datasets
         if not self._checkpoint.is_empty:
-            #######
-            #test_trans = self._cfg.data.test_transform
-            #self._cfg.data = self._checkpoint.data_config
-            #self._cfg.data.test_transform = test_trans
-            #######
-            self._dataset: BaseDataset = instantiate_dataset(self._checkpoint.data_config)  #(self._cfg.data)
+            self._dataset: BaseDataset = instantiate_dataset(self._checkpoint.data_config)
             self._model: BaseModel = self._checkpoint.create_model(
                 self._dataset, weight_name=self._cfg.training.weight_name
             )
