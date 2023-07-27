@@ -3,7 +3,7 @@
 This repository represents the official code for paper entitled "A Review of Panoptic Segmentation for Mobile Mapping Point Clouds". 
 
 <p align="center">
-  <img width="100%" src="/figures/PanopticSegExample.png" />
+  <img width="70%" src="/figures/PanopticSegExample.png" />
 </p>
 
 # Set up environment
