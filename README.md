@@ -271,7 +271,7 @@ If you find our work useful, please do not hesitate to cite our paper:
 }
 ```
 
-If you use NPM3D dataset, please do not forget to also cite:
+If you use [NPM3D]( https://npm3d.fr/paris-lille-3d) dataset, please do not forget to also cite:
 ```
 @article{roynard2017parislille3d,
   author = {Xavier Roynard and Jean-Emmanuel Deschaud and François Goulette},
