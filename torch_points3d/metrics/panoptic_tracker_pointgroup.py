@@ -135,6 +135,7 @@ class PanopticTracker(SegmentationTracker):
         self._ap_meter = InstanceAPMeter()
         self._scan_id_offset = 0
         self._rec: Dict[str, float] = {}
+        self._prec: Dict[str, float] = {}
         self._ap: Dict[str, float] = {}
         self._iou_per_class = {}
 
@@ -145,7 +146,7 @@ class PanopticTracker(SegmentationTracker):
         data=None,
         iou_threshold=0.5, #0.25,
         track_instances=True,
-        min_cluster_points=100,
+        min_cluster_points=10,
         **kwargs
     ):
         """ Track metrics for panoptic segmentation

@@ -182,7 +182,10 @@ python train.py task=panoptic data=panoptic/npm3d-pointnet2 models=panoptic/poin
 python train.py task=panoptic data=panoptic/s3disfused-pointnet2 models=panoptic/pointnet2 model_name=pointnet2_indoor training=s3dis_benchmark/pointnet2-panoptic job_name=S3DIS_PointNet
 
 # Running PointGroup on S3DIS dataset
-python train.py task=panoptic data=panoptic/s3disfused-sparseconv-area1 models=panoptic/pointgroup model_name=PointGroup-PAPER training=pointgroup-003-a1 job_name=pointgroup-003-area1
+python train.py task=panoptic data=panoptic/s3disfused-sparseconv-area1 models=panoptic/pointgroup model_name=PointGroup-PAPER training=pointgroup job_name=pointgroup-003-area1
+
+# Running PointGroup without ScoreNet on S3DIS dataset
+python train.py task=panoptic data=panoptic/s3disfused-sparseconv-area1 models=panoptic/pointgroup-withoutScorenet model_name=PointGroup-PAPER training=pointgroup job_name=pointgroup-withoutScorenet-003-area1
 ```
 
 2. Perform test by running:
@@ -209,7 +212,7 @@ python eval_PanopticSeg_S3DIS.py
 | Radius of sampling cylinder | meter | conf/data/panoptic/#NameOfYourChosenConfigFile#.yaml, radius |
 | Change of input features | \ | conf/data/panoptic/#NameOfYourChosenConfigFile#.yaml, transform: AddFeatsByKeys |
 | Weights of loss terms | \ | conf/models/panoptic/#NameOfYourChosenConfigFile#.yaml, loss_weights |
-| The folder name of your output files | #YourOutputFolderName# | job_name=#YourOutputFolderName# |
+| The folder name of your output files | \ | job_name=#YourOutputFolderName# |
 
 5. Errors may occur
 ```
