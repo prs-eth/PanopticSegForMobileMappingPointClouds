@@ -1,0 +1,84 @@
+# @package data
+defaults:
+  - panoptic/default
+
+task: panoptic
+class: s3dis.S3DISFusedDataset
+dataroot: data
+fold: 2
+first_subsampling: 0.02
+radius: 3
+grid_size: ${data.first_subsampling}
+keep_instance: True
+use_category: False
+sampling_format: 'sphere' # "cylinder"
+mode: last
+pre_collate_transform:
+  - transform: PointCloudFusion # One point cloud per area
+  - transform: SaveOriginalPosId # Required so that one can recover the original point in the fused point cloud
+  - transform: GridSampling3D # Samples on a grid
+    params:
+      size: ${data.first_subsampling}
+      mode: ${data.mode}
+train_transforms:
+  - transform: FixedPoints
+    lparams: [20000]
+  - transform: RandomNoise
+    params:
+      sigma: 0.01
+  - transform: RandomRotate
+    params:
+      degrees: 180
+      axis: 2
+  - transform: RandomScaleAnisotropic
+    params:
+      scales: [0.9, 1.1]
+  - transform: RandomSymmetry
+    params:
+      axis: [True, False, False]
+  - transform: DropFeature
+    params:
+      drop_proba: 0.2
+      feature_name: rgb
+#  - transform: XYZRelaFeature
+#    params:
+#      add_x: True
+#      add_y: True
+#      add_z: True
+#  - transform: XYZFeature
+#    params:
+#      add_x: False
+#      add_y: False
+#      add_z: True
+  - transform: AddFeatsByKeys
+    params:
+      list_add_to_x: [True]
+      feat_names: [rgb]
+      delete_feats: [True]
+      #list_add_to_x: [True, True, True, True, True, True, True]
+      #feat_names: [rgb, pos_x_rela, pos_y_rela, pos_z_rela, pos_x, pos_y, pos_z]
+      #delete_feats: [True, True, True, True, True, True, True]
+  - transform: Center
+test_transform:
+  - transform: FixedPoints
+    lparams: [20000]
+#  - transform: XYZRelaFeature
+#    params:
+#      add_x: True
+#      add_y: True
+#      add_z: True
+#  - transform: XYZFeature
+#    params:
+#      add_x: False
+#      add_y: False
+#      add_z: True
+  - transform: AddFeatsByKeys
+    params:
+      list_add_to_x: [True]
+      feat_names: [rgb]
+      delete_feats: [True]
+      #list_add_to_x: [True, True, True, True, True, True, True]
+      #feat_names: [rgb, pos_x_rela, pos_y_rela, pos_z_rela, pos_x, pos_y, pos_z]
+      #delete_feats: [True, True, True, True, True, True, True]
+  - transform: Center
+val_transform: ${data.test_transform}

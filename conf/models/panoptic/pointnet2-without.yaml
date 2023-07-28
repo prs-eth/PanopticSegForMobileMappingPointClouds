@@ -163,7 +163,7 @@ pointnet2_indoor:
         offset_norm_loss: 0.1
         offset_dir_loss: 0.1
         embedding_loss: 0.1
-        lambda_reg: 1e-3
+        lambda_reg: 0 #1e-3
     vizual_ratio: 0.4
     bandwidth: 0.6
     block_merge_th: 0.01
@@ -218,7 +218,7 @@ pointnet2NPM3D:
         offset_norm_loss: 0.1
         offset_dir_loss: 0.1
         embedding_loss: 1
-        lambda_reg: 1e-3
+        lambda_reg: 0#1e-3
     vizual_ratio: 0.4
     bandwidth: 0.6
     block_merge_th: 0.01

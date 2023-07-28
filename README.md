@@ -141,7 +141,7 @@ Download Stanford3dDataset_v1.2_Version.zip from: http://buildingparser.stanford
 ├─ torch_points3d
 ├─ data                    # DATA FOLDER
     └─ s3disfused
-        └─ raw
+        ├─ raw
             ├─ Area1
                 └─ $ROOMTYPE$_$ID$
             ├─ Area2
@@ -154,6 +154,7 @@ Download Stanford3dDataset_v1.2_Version.zip from: http://buildingparser.stanford
                 └─ $ROOMTYPE$_$ID$
             └─ Area6
                 └─ $ROOMTYPE$_$ID$
+        └─ Stanford3dDataset_v1.2_Version.zip
 ├─ train.py                # Main script to launch a training
 └─ eval.py                 # Eval script
 ```
@@ -163,22 +164,25 @@ Download Stanford3dDataset_v1.2_Version.zip from: http://buildingparser.stanford
 
 ```bash
 # Running KPConv on NPM3D dataset
-python train.py task=panoptic data=panoptic/npm3d-kpconv models=panoptic/kpconv model_name=KPConvPaperNPM3D training=npm3d_benchmark/kpconv-panoptic
+python train.py task=panoptic data=panoptic/npm3d-kpconv models=panoptic/kpconv model_name=KPConvPaperNPM3D training=npm3d_benchmark/kpconv-panoptic job_name=NPM3D_KPConv
 
 # Running KPConv on S3DIS dataset
-python train.py task=panoptic data=panoptic/s3disfused-kpconv models=panoptic/kpconv model_name=KPConvPaperS3DIS training=s3dis_benchmark/kpconv-panoptic
+python train.py task=panoptic data=panoptic/s3disfused-kpconv models=panoptic/kpconv model_name=KPConvPaperS3DIS training=s3dis_benchmark/kpconv-panoptic job_name=S3DIS_KPConv
 
 # Running Sparse CNN on NPM3D dataset
-python train.py task=panoptic data=panoptic/npm3d-sparseconv models=panoptic/minkowski model_name=MinkowskiBackboneNPM3D training=npm3d_benchmark/minkowski-panoptic
+python train.py task=panoptic data=panoptic/npm3d-sparseconv models=panoptic/minkowski model_name=MinkowskiBackboneNPM3D training=npm3d_benchmark/minkowski-panoptic job_name=NPM3D_minkowski
 
 # Running Sparse CNN on S3DIS dataset
-python train.py task=panoptic data=panoptic/s3disfused-sparseconv models=panoptic/minkowski model_name=MinkowskiBackboneS3DIS training=s3dis_benchmark/minkowski-panoptic
+python train.py task=panoptic data=panoptic/s3disfused-sparseconv models=panoptic/minkowski model_name=MinkowskiBackboneS3DIS training=s3dis_benchmark/minkowski-panoptic job_name=S3DIS_minkowski
 
 # Running PointNet++ on NPM3D dataset
-python train.py task=panoptic data=panoptic/npm3d-pointnet2 models=panoptic/pointnet2 model_name=pointnet2NPM3D training=npm3d_benchmark/pointnet2-panoptic
+python train.py task=panoptic data=panoptic/npm3d-pointnet2 models=panoptic/pointnet2 model_name=pointnet2NPM3D training=npm3d_benchmark/pointnet2-panoptic job_name=NPM3D_PointNet
 
 # Running PointNet++ on S3DIS dataset
-python train.py task=panoptic data=panoptic/s3disfused-pointnet2 models=panoptic/pointnet2 model_name=pointnet2_indoor training=s3dis_benchmark/pointnet2-panoptic
+python train.py task=panoptic data=panoptic/s3disfused-pointnet2 models=panoptic/pointnet2 model_name=pointnet2_indoor training=s3dis_benchmark/pointnet2-panoptic job_name=S3DIS_PointNet
+
+# Running PointGroup on S3DIS dataset
+python train.py task=panoptic data=panoptic/s3disfused-sparseconv-area1 models=panoptic/pointgroup model_name=PointGroup-PAPER training=pointgroup-003-a1 job_name=pointgroup-003-area1
 ```
 
 2. Perform test by running:
@@ -194,6 +198,26 @@ python eval_PanopticSeg_NPM3D.py
 # For S3DIS dataset
 python generate_seperateRoom_forS3DIStest.py
 python eval_PanopticSeg_S3DIS.py
+```
+4. How to set different parameters
+
+|<h3> Parameter </h3>|<h3> Unit <h3>|<h3> Where to find/How to set in code </h3>|
+| :--------------------: | :---------------------: | :-------------------------------: |
+| Number of training iterations | epochs | conf/training/#NameOfYourChosenConfigFile#.yaml, epochs|
+| Batch size | \ | conf/training/#NameOfYourChosenConfigFile#.yaml, batch_size|
+| Voxel size/subsampling size | meter | conf/data/panoptic/#NameOfYourChosenConfigFile#.yaml, first_subsampling |
+| Radius of sampling cylinder | meter | conf/data/panoptic/#NameOfYourChosenConfigFile#.yaml, radius |
+| Change of input features | \ | conf/data/panoptic/#NameOfYourChosenConfigFile#.yaml, transform: AddFeatsByKeys |
+| Weights of loss terms | \ | conf/models/panoptic/#NameOfYourChosenConfigFile#.yaml, loss_weights |
+| The folder name of your output files | #YourOutputFolderName# | job_name=#YourOutputFolderName# |
+
+5. Errors may occur
+```
+1.
+ValueError: could not convert string to float: '103.0\x100000'
+
+Solution:
+https://github.com/zeliu98/CloserLook3D/issues/15#issuecomment-882024359
 ```
 
 # Citing

@@ -3,10 +3,11 @@ defaults:
   - panoptic/default
 
 task: panoptic
-class: Italy.ItalyDataset
+class: npm3d.NPM3DFusedDataset
 dataroot: data
-fold: [1,3,5,7]
+fold: 2
 first_subsampling: 0.16
+radius: 4
 grid_size: ${data.first_subsampling}
 keep_instance: True
 use_category: False
@@ -38,24 +39,43 @@ train_transforms:
       add_x: True
       add_y: True
       add_z: True
-  - transform: AddOnes
+  - transform: XYZFeature
+    params:
+      add_x: False
+      add_y: False
+      add_z: True
   - transform: AddFeatsByKeys
     params:
       list_add_to_x: [True, True, True, True]
-      feat_names: [pos_x_rela, pos_y_rela, pos_z_rela, ones]
+      feat_names: [pos_x_rela, pos_y_rela, pos_z_rela, pos_z]
       delete_feats: [True, True, True, True]
   - transform: Center
+  - transform: GridSampling3D
+    params:
+      size: ${data.first_subsampling}
+      quantize_coords: True
+      mode: ${data.mode}
+  - transform: ShiftVoxels
 test_transform:
   - transform: XYZRelaFeature
     params:
       add_x: True
       add_y: True
       add_z: True
-  - transform: AddOnes
+  - transform: XYZFeature
+    params:
+      add_x: False
+      add_y: False
+      add_z: True
   - transform: AddFeatsByKeys
     params:
       list_add_to_x: [True, True, True, True]
-      feat_names: [pos_x_rela, pos_y_rela, pos_z_rela, ones]
+      feat_names: [pos_x_rela, pos_y_rela, pos_z_rela, pos_z]
       delete_feats: [True, True, True, True]
   - transform: Center
+  - transform: GridSampling3D
+    params:
+      size: ${data.first_subsampling}
+      quantize_coords: True
+      mode: ${data.mode}
 val_transform: ${data.test_transform}
