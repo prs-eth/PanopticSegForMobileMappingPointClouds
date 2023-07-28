@@ -221,6 +221,40 @@ ValueError: could not convert string to float: '103.0\x100000'
 
 Solution:
 https://github.com/zeliu98/CloserLook3D/issues/15#issuecomment-882024359
+
+2. 
+AttributeError: 'PanopticResults' object has no attribute 'get_instances'
+
+Solution:
+
+find file: /#YourLocation#/PanopticSegForMobileMappingPointClouds/torch_points3d/datasets/panoptic/s3dis.py or ...
+
+and then change the code:
+
+from torch_points3d.metrics.panoptic_tracker_s3dis import MyPanopticTracker
+#from torch_points3d.metrics.panoptic_tracker_pointgroup import PanopticTracker
+
+and 
+
+#return PanopticTracker(self, wandb_log=wandb_log, use_tensorboard=tensorboard_log)
+return MyPanopticTracker(self, wandb_log=wandb_log, use_tensorboard=tensorboard_log)
+
+3. 
+AttributeError: 'PanopticResults' object has no attribute 'embed_clusters'
+
+Solution:
+
+find file: /#YourLocation#/PanopticSegForMobileMappingPointClouds/torch_points3d/datasets/panoptic/s3dis.py or ...
+
+and then change the code:
+
+#from torch_points3d.metrics.panoptic_tracker_s3dis import MyPanopticTracker
+from torch_points3d.metrics.panoptic_tracker_pointgroup import PanopticTracker
+
+and 
+
+return PanopticTracker(self, wandb_log=wandb_log, use_tensorboard=tensorboard_log)
+#return MyPanopticTracker(self, wandb_log=wandb_log, use_tensorboard=tensorboard_log)
 ```
 
 # Citing
