@@ -267,7 +267,7 @@ If you find our work useful, please do not hesitate to cite our paper:
   author={Binbin Xiang and Yuanwen Yue and Torben Peters and Konrad Schindler},
   journal={ISPRS Journal of Photogrammetry and Remote Sensing},
   year={2023},
-  url = {\url{https://arxiv.org/abs/2304.13980}}
+  url = {\url{[https://arxiv.org/abs/2304.13980](https://doi.org/10.1016/j.isprsjprs.2023.08.008)}}
 }
 ```
 
